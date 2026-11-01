@@ -1,0 +1,174 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "Authorized administrator user profile and privileges",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["superadmin", "admin", "editor"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "ApkItem": {
+      "title": "ApkItem",
+      "description": "Android APK application or game resource listing",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "slug": { "type": "string", "maxLength": 150 },
+        "appIcon": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "screenshots": { "type": "array" },
+        "shortDescription": { "type": "string", "maxLength": 300 },
+        "fullDescription": { "type": "string", "maxLength": 10000 },
+        "category": { "type": "string", "enum": ["MOD Apps", "MOD Games"] },
+        "version": { "type": "string", "maxLength": 50 },
+        "fileSize": { "type": "string", "maxLength": 50 },
+        "androidRequirements": { "type": "string", "maxLength": 50 },
+        "downloadUrl": { "type": "string" },
+        "officialSourceUrl": { "type": "string" },
+        "developerName": { "type": "string", "maxLength": 100 },
+        "licenseInfo": { "type": "string", "maxLength": 500 },
+        "seoTitle": { "type": "string", "maxLength": 100 },
+        "seoDescription": { "type": "string", "maxLength": 250 },
+        "seoTags": { "type": "array" },
+        "featured": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["published", "draft", "unpublished"] },
+        "lovesCount": { "type": "integer" },
+        "viewsCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "category", "status"]
+    },
+    "PhotoPrompt": {
+      "title": "PhotoPrompt",
+      "description": "AI generative photo editing prompt resource",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "slug": { "type": "string", "maxLength": 150 },
+        "previewImage": { "type": "string" },
+        "shortDescription": { "type": "string", "maxLength": 300 },
+        "fullDescription": { "type": "string", "maxLength": 10000 },
+        "promptText": { "type": "string", "maxLength": 10000 },
+        "category": { "type": "string", "maxLength": 100 },
+        "aiPlatform": { "type": "string", "maxLength": 50 },
+        "instructions": { "type": "string", "maxLength": 3000 },
+        "seoTitle": { "type": "string", "maxLength": 100 },
+        "seoDescription": { "type": "string", "maxLength": 250 },
+        "seoTags": { "type": "array" },
+        "featured": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["published", "draft", "unpublished"] },
+        "lovesCount": { "type": "integer" },
+        "viewsCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "promptText", "category", "aiPlatform", "status"]
+    },
+    "VideoTemplate": {
+      "title": "VideoTemplate",
+      "description": "Video editing template resource for CapCut, Premiere, etc.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 150 },
+        "slug": { "type": "string", "maxLength": 150 },
+        "thumbnail": { "type": "string" },
+        "previewVideoUrl": { "type": "string" },
+        "shortDescription": { "type": "string", "maxLength": 300 },
+        "fullDescription": { "type": "string", "maxLength": 10000 },
+        "editingPlatform": { "type": "string", "maxLength": 50 },
+        "category": { "type": "string", "maxLength": 100 },
+        "directTemplateUrl": { "type": "string" },
+        "downloadableFileUrl": { "type": "string" },
+        "fileFormat": { "type": "string", "maxLength": 20 },
+        "fileSize": { "type": "string", "maxLength": 50 },
+        "usageInstructions": { "type": "string", "maxLength": 3000 },
+        "copyrightInfo": { "type": "string", "maxLength": 500 },
+        "seoTitle": { "type": "string", "maxLength": 100 },
+        "seoDescription": { "type": "string", "maxLength": 250 },
+        "seoTags": { "type": "array" },
+        "featured": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["published", "draft", "unpublished"] },
+        "viewsCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "editingPlatform", "category", "status"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Category categorization definition for content types",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "slug": { "type": "string", "maxLength": 100 },
+        "contentType": { "type": "string", "enum": ["MOD Apps", "MOD Games", "Photo Editing Prompts", "Video Templates"] },
+        "description": { "type": "string", "maxLength": 500 },
+        "imageUrl": { "type": "string" },
+        "seoTitle": { "type": "string", "maxLength": 100 },
+        "seoDescription": { "type": "string", "maxLength": 250 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "contentType", "status"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global website configuration, SEO, AdSense, and hero spotlight",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "contactEmail": { "type": "string", "format": "email" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "LoveCount": {
+      "title": "LoveCount",
+      "description": "User engagement love count tracker",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "count": { "type": "integer" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["itemId", "count"]
+    }
+  },
+  "firestore": {
+    "/admins/{uid}": {
+      "schema": "Admin",
+      "description": "Registry of authorized admin user IDs for secure access control"
+    },
+    "/apkApps/{itemId}": {
+      "schema": "ApkItem",
+      "description": "MOD Apps and MOD Games repository collection"
+    },
+    "/photoPrompts/{promptId}": {
+      "schema": "PhotoPrompt",
+      "description": "Photo editing prompts collection"
+    },
+    "/videoTemplates/{templateId}": {
+      "schema": "VideoTemplate",
+      "description": "Video editing templates collection"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Category taxomony for apps, games, prompts, and templates"
+    },
+    "/siteSettings/{documentId}": {
+      "schema": "SiteSettings",
+      "description": "Singleton configuration documents: general, seo, adsense, featured"
+    },
+    "/loveCounts/{itemId}": {
+      "schema": "LoveCount",
+      "description": "Engagement counters for public prompt loves"
+    }
+  }
+}

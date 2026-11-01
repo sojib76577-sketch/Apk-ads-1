@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email in ['sojib76577@gmail.com', 'lamiaalter@gmail.com']
+      );
+    }
+
+    function isValidMedia() {
+      return request.resource.size <= 25 * 1024 * 1024 // 25MB max
+        && (
+          request.resource.contentType.matches('image/.*') ||
+          request.resource.contentType.matches('video/.*') ||
+          request.resource.contentType == 'application/zip' ||
+          request.resource.contentType == 'application/x-zip-compressed' ||
+          request.resource.contentType == 'application/octet-stream'
+        );
+    }
+
+    // 1. APK Apps Assets (Icons, Covers, Screenshots)
+    match /apkApps/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMedia();
+      allow delete: if isAdmin();
+    }
+
+    // 2. Photo Prompts Previews
+    match /photoPrompts/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMedia();
+      allow delete: if isAdmin();
+    }
+
+    // 3. Video Templates Thumbnails & Permitted Archives
+    match /videoTemplates/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMedia();
+      allow delete: if isAdmin();
+    }
+
+    // 4. Site Assets (Logo, Favicon, Hero Banners)
+    match /siteAssets/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMedia();
+      allow delete: if isAdmin();
+    }
+
+    // 5. General Media Library Assets
+    match /media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMedia();
+      allow delete: if isAdmin();
+    }
+
+    // Default catch-all
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidMedia();
+      allow delete: if isAdmin();
+    }
+  }
+}

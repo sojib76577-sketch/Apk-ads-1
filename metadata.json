@@ -1,0 +1,6 @@
+{
+  "name": "PromptXHubl Admin",
+  "description": "Production-ready, secure dark-themed Admin CMS and Content Management Dashboard for PromptXHubl — managing APKs, Photo Prompts, Video Templates, Categories, Media, and Site Settings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

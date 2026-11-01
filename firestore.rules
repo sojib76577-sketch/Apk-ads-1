@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email in ['sojib76577@gmail.com', 'lamiaalter@gmail.com']
+      );
+    }
+
+    function isPublished() {
+      return resource.data.status == 'published';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. Admin Registry: /admins/{uid}
+    // Any signed-in user can check their own admin document.
+    // Verified admins can list, create, update, and delete admin records.
+    // Signed-in users can also create their own admin document during initial setup.
+    match /admins/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // 2. APK Apps & Games: /apkApps/{itemId}
+    match /apkApps/{itemId} {
+      allow get: if isPublished() || isAdmin();
+      allow list: if isAdmin() || (resource.data.status == 'published');
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 3. Photo Editing Prompts: /photoPrompts/{promptId}
+    match /photoPrompts/{promptId} {
+      allow get: if isPublished() || isAdmin();
+      allow list: if isAdmin() || (resource.data.status == 'published');
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 4. Video Templates: /videoTemplates/{templateId}
+    match /videoTemplates/{templateId} {
+      allow get: if isPublished() || isAdmin();
+      allow list: if isAdmin() || (resource.data.status == 'published');
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 5. Categories: /categories/{categoryId}
+    match /categories/{categoryId} {
+      allow get, list: if true; // Public can see active categories
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 6. Site Settings (general, seo, adsense, featured): /siteSettings/{docId}
+    match /siteSettings/{docId} {
+      allow get, list: if true; // Public reads config like site name, adsense pub id
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 7. Love Counts & Public Engagement: /loveCounts/{itemId}
+    match /loveCounts/{itemId} {
+      allow get, list: if true;
+      allow create: if request.resource.data.count == 1;
+      allow update: if request.resource.data.count == resource.data.count + 1 || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
