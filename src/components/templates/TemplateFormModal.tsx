@@ -168,30 +168,32 @@ export const TemplateFormModal: React.FC<TemplateFormModalProps> = ({
     try {
       await saveTemplate({
         id: initialData?.id,
-        title,
-        slug,
-        thumbnail: thumbnail || 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&auto=format&fit=crop&q=80',
-        previewVideoUrl: previewVideoUrl.trim() || undefined,
-        shortDescription,
-        fullDescription,
+        title: title.trim(),
+        slug: slug.trim(),
+        thumbnail: thumbnail.trim() || 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&auto=format&fit=crop&q=80',
+        previewVideoUrl: previewVideoUrl.trim() || '',
+        shortDescription: shortDescription.trim(),
+        fullDescription: fullDescription.trim(),
         editingPlatform,
         category: category || (templateCategories[0]?.name || 'Trending TikTok & Reels'),
-        directTemplateUrl: directTemplateUrl.trim() || undefined,
-        downloadableFileUrl: downloadableFileUrl.trim() || undefined,
-        fileFormat,
-        fileSize,
-        usageInstructions,
-        copyrightInfo,
-        seoTitle: seoTitle || title,
-        seoDescription: seoDescription || shortDescription,
+        directTemplateUrl: directTemplateUrl.trim() || '',
+        downloadableFileUrl: downloadableFileUrl.trim() || '',
+        fileFormat: fileFormat.trim() || 'ZIP / Web Link',
+        fileSize: fileSize.trim() || '45 MB',
+        usageInstructions: usageInstructions.trim() || 'Open link in editing app or import XML/MOGRT project file.',
+        copyrightInfo: copyrightInfo.trim() || 'Free for creator and commercial use with attribution.',
+        seoTitle: (seoTitle || title).trim(),
+        seoDescription: (seoDescription || shortDescription).trim(),
         seoTags,
         featured,
         status,
         viewsCount: initialData?.viewsCount || 0,
       });
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to save template:', err);
+      const errMsg = err instanceof Error ? err.message : 'Unknown Firestore upload failure';
+      setValidationError(`Upload failed: ${errMsg}. Please verify your connection or admin permissions and try again.`);
     } finally {
       setIsSubmitting(false);
     }

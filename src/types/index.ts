@@ -90,6 +90,7 @@ export interface VideoTemplate {
   seoTags: string[];
   featured: boolean;
   status: ContentStatus;
+  lovesCount?: number;
   viewsCount: number;
   createdAt: string;
   updatedAt: string;

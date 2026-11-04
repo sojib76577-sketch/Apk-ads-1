@@ -463,9 +463,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...tpl,
           thumbnailUrl: tpl.thumbnail,
           platform: tpl.editingPlatform,
+          previewVideoUrl: tpl.previewVideoUrl || '',
+          directTemplateUrl: tpl.directTemplateUrl || '',
+          downloadableFileUrl: tpl.downloadableFileUrl || '',
           downloadFileUrl: tpl.downloadableFileUrl || '',
           licenseInfo: tpl.copyrightInfo,
           description: tpl.shortDescription,
+          lovesCount: tpl.lovesCount || 0,
         };
         await setDoc(doc(firestoreDb, 'videoTemplates', tpl.id), payload);
       }
@@ -641,34 +645,88 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const now = new Date().toISOString();
 
     const existingItem = templates.find(t => t.id === id);
-    const itemToSave: VideoTemplate = {
-      ...tplData,
+
+    // Normalize all fields and ensure NO field is undefined
+    const cleanItem: VideoTemplate = {
       id,
-      viewsCount: existingItem ? existingItem.viewsCount : 0,
+      title: (tplData.title || '').trim(),
+      slug: (tplData.slug || '').trim(),
+      thumbnail: (tplData.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&auto=format&fit=crop&q=80',
+      thumbnailUrl: (tplData.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&auto=format&fit=crop&q=80',
+      previewVideoUrl: (tplData.previewVideoUrl || '').trim(),
+      shortDescription: (tplData.shortDescription || '').trim(),
+      description: (tplData.shortDescription || '').trim(),
+      fullDescription: (tplData.fullDescription || '').trim(),
+      editingPlatform: tplData.editingPlatform || 'CapCut',
+      platform: tplData.editingPlatform || 'CapCut',
+      category: tplData.category || 'Trending TikTok & Reels',
+      directTemplateUrl: (tplData.directTemplateUrl || '').trim(),
+      downloadableFileUrl: (tplData.downloadableFileUrl || tplData.downloadFileUrl || '').trim(),
+      downloadFileUrl: (tplData.downloadableFileUrl || tplData.downloadFileUrl || '').trim(),
+      fileFormat: (tplData.fileFormat || 'ZIP / Web Link').trim(),
+      fileSize: (tplData.fileSize || '45 MB').trim(),
+      usageInstructions: (tplData.usageInstructions || 'Open link in editing app or import XML/MOGRT project file.').trim(),
+      copyrightInfo: (tplData.copyrightInfo || 'Free for creator and commercial use with attribution.').trim(),
+      licenseInfo: (tplData.copyrightInfo || 'Free for creator and commercial use with attribution.').trim(),
+      seoTitle: (tplData.seoTitle || tplData.title || '').trim(),
+      seoDescription: (tplData.seoDescription || tplData.shortDescription || '').trim(),
+      seoTags: Array.isArray(tplData.seoTags) ? tplData.seoTags : [],
+      featured: Boolean(tplData.featured),
+      status: tplData.status || 'draft',
+      lovesCount: typeof tplData.lovesCount === 'number' ? tplData.lovesCount : (existingItem?.lovesCount || 0),
+      viewsCount: typeof tplData.viewsCount === 'number' ? tplData.viewsCount : (existingItem?.viewsCount || 0),
       createdAt: existingItem ? existingItem.createdAt : now,
       updatedAt: now,
     };
 
-    const payload = {
-      ...itemToSave,
-      thumbnail: itemToSave.thumbnail,
-      thumbnailUrl: itemToSave.thumbnail,
-      editingPlatform: itemToSave.editingPlatform,
-      platform: itemToSave.editingPlatform,
-      directTemplateUrl: itemToSave.directTemplateUrl || '',
-      downloadableFileUrl: itemToSave.downloadableFileUrl || itemToSave.downloadFileUrl || '',
-      downloadFileUrl: itemToSave.downloadableFileUrl || itemToSave.downloadFileUrl || '',
-      copyrightInfo: itemToSave.copyrightInfo,
-      licenseInfo: itemToSave.copyrightInfo,
-      shortDescription: itemToSave.shortDescription,
-      description: itemToSave.shortDescription,
+    // Full dual-compatibility payload aligned with both Admin CMS and Main Website Firestore schema
+    const payload: Record<string, unknown> = {
+      id: cleanItem.id,
+      title: cleanItem.title,
+      slug: cleanItem.slug,
+      thumbnail: cleanItem.thumbnail,
+      thumbnailUrl: cleanItem.thumbnailUrl,
+      previewVideoUrl: cleanItem.previewVideoUrl,
+      shortDescription: cleanItem.shortDescription,
+      description: cleanItem.description,
+      fullDescription: cleanItem.fullDescription,
+      editingPlatform: cleanItem.editingPlatform,
+      platform: cleanItem.platform,
+      category: cleanItem.category,
+      directTemplateUrl: cleanItem.directTemplateUrl,
+      downloadableFileUrl: cleanItem.downloadableFileUrl,
+      downloadFileUrl: cleanItem.downloadFileUrl,
+      fileFormat: cleanItem.fileFormat,
+      fileSize: cleanItem.fileSize,
+      usageInstructions: cleanItem.usageInstructions,
+      copyrightInfo: cleanItem.copyrightInfo,
+      licenseInfo: cleanItem.licenseInfo,
+      seoTitle: cleanItem.seoTitle,
+      seoDescription: cleanItem.seoDescription,
+      seoTags: cleanItem.seoTags,
+      featured: cleanItem.featured,
+      status: cleanItem.status,
+      lovesCount: cleanItem.lovesCount,
+      viewsCount: cleanItem.viewsCount,
+      createdAt: cleanItem.createdAt,
+      updatedAt: cleanItem.updatedAt,
     };
+
+    // Strict undefined filter guarantee
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === undefined) {
+        delete payload[key];
+      }
+    });
 
     if (firestoreDb && !isDemoMode) {
       try {
         await setDoc(doc(firestoreDb, 'videoTemplates', id), payload);
-      } catch (err) {
-        handleFirestoreError(err, isNew ? OperationType.CREATE : OperationType.UPDATE, `videoTemplates/${id}`);
+      } catch (err: unknown) {
+        console.error('Firestore write error in /videoTemplates/' + id, err);
+        const errMsg = handleFirestoreError(err, isNew ? OperationType.CREATE : OperationType.UPDATE, `videoTemplates/${id}`);
+        showToast('error', 'Upload Failed', `Could not save Video Template to Firestore: ${errMsg || (err instanceof Error ? err.message : 'Unknown write error')}`);
+        throw err;
       }
     }
 
@@ -676,21 +734,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const idx = prev.findIndex(t => t.id === id);
       if (idx >= 0) {
         const updated = [...prev];
-        updated[idx] = itemToSave;
+        updated[idx] = cleanItem;
         return updated;
       }
-      return [itemToSave, ...prev];
+      return [cleanItem, ...prev];
     });
 
-    showToast('success', 'Template Saved', `"${itemToSave.title}" has been saved to /videoTemplates/${id}.`);
+    showToast('success', 'Template Saved', `"${cleanItem.title}" has been saved to /videoTemplates/${id}.`);
   };
 
   const deleteTemplate = async (id: string) => {
     if (firestoreDb && !isDemoMode) {
       try {
         await deleteDoc(doc(firestoreDb, 'videoTemplates', id));
-      } catch (err) {
+      } catch (err: unknown) {
         handleFirestoreError(err, OperationType.DELETE, `videoTemplates/${id}`);
+        showToast('error', 'Delete Failed', err instanceof Error ? err.message : 'Failed to delete template from Firestore');
+        throw err;
       }
     }
     setTemplates(prev => prev.filter(t => t.id !== id));
@@ -704,8 +764,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (firestoreDb && !isDemoMode) {
       try {
         await setDoc(doc(firestoreDb, 'videoTemplates', id), { status, updatedAt: updated.updatedAt }, { merge: true });
-      } catch (err) {
+      } catch (err: unknown) {
         handleFirestoreError(err, OperationType.UPDATE, `videoTemplates/${id}`);
+        showToast('error', 'Status Update Failed', err instanceof Error ? err.message : 'Failed to update template status in Firestore');
+        throw err;
       }
     }
     setTemplates(prev => prev.map(t => (t.id === id ? updated : t)));
