@@ -15,7 +15,15 @@ import {
 } from 'lucide-react';
 
 export const FeaturedContentManager: React.FC = () => {
-  const { featuredConfig, saveFeaturedConfig, apks, prompts, templates, uploadMedia } = useData();
+  const { 
+    featuredConfig, 
+    saveFeaturedConfig, 
+    reorderFeaturedApks,
+    apks, 
+    prompts, 
+    templates, 
+    uploadMedia 
+  } = useData();
 
   const [bannerTitle, setBannerTitle] = useState(featuredConfig.bannerTitle);
   const [bannerDescription, setBannerDescription] = useState(featuredConfig.bannerDescription);
@@ -91,6 +99,7 @@ export const FeaturedContentManager: React.FC = () => {
         featuredTemplateIds: selectedTemplateIds,
         updatedAt: new Date().toISOString(),
       });
+      await reorderFeaturedApks(selectedApkIds);
     } catch (err) {
       console.error('Failed to save featured config:', err);
     } finally {

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { LoginPage } from './components/auth/LoginPage';
 import { DashboardOverview } from './components/dashboard/DashboardOverview';
 import { ApkManager } from './components/apk/ApkManager';
@@ -168,7 +169,7 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {/* Dynamic Page Views */}
-        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 pb-24 lg:p-8 max-w-7xl w-full mx-auto">
           {activeNav === 'dashboard' && (
             <DashboardOverview 
               onNavigate={setActiveNav} 
@@ -187,6 +188,14 @@ const AdminDashboard: React.FC = () => {
           {activeNav === 'site-settings' && <SiteSettings />}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation (Android phone friendly) */}
+      <MobileBottomNav
+        activeNav={activeNav}
+        setActiveNav={setActiveNav}
+        onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+        onQuickAddApk={() => handleQuickAdd('apk')}
+      />
 
       {/* Global Modals */}
       <FirebaseConfigModal

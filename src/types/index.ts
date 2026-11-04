@@ -11,6 +11,7 @@ export type ContentType =
 export interface ApkItem {
   id: string;
   title: string;
+  name?: string; // Main website compatibility alias
   slug: string;
   appIcon: string;
   iconUrl?: string; // Main website compatibility alias
@@ -28,11 +29,15 @@ export interface ApkItem {
   officialSourceUrl: string;
   sourceUrl?: string; // Main website compatibility alias
   developerName: string;
+  packageName?: string;
+  changelog?: string;
   licenseInfo: string;
   seoTitle: string;
   seoDescription: string;
   seoTags: string[];
   featured: boolean;
+  featuredOrder?: number;
+  pinOrder?: number;
   status: ContentStatus;
   lovesCount: number;
   viewsCount: number;

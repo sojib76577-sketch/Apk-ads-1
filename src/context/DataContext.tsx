@@ -77,6 +77,8 @@ interface DataContextType {
   saveApk: (apk: Omit<ApkItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<void>;
   deleteApk: (id: string) => Promise<void>;
   setApkStatus: (id: string, status: ContentStatus) => Promise<void>;
+  togglePinApk: (id: string, pin?: boolean) => Promise<void>;
+  reorderFeaturedApks: (orderedIds: string[]) => Promise<void>;
   savePrompt: (prompt: Omit<PhotoPrompt, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<void>;
   deletePrompt: (id: string) => Promise<void>;
   setPromptStatus: (id: string, status: ContentStatus) => Promise<void>;
@@ -157,7 +159,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const d = docSnap.data();
             return {
               id: docSnap.id,
-              title: d.title || '',
+              title: d.title || d.name || '',
+              name: d.name || d.title || '',
               slug: d.slug || '',
               appIcon: d.appIcon || d.iconUrl || '',
               iconUrl: d.iconUrl || d.appIcon || '',
@@ -175,11 +178,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               officialSourceUrl: d.officialSourceUrl || d.sourceUrl || '',
               sourceUrl: d.sourceUrl || d.officialSourceUrl || '',
               developerName: d.developerName || '',
+              packageName: d.packageName || '',
+              changelog: d.changelog || '',
               licenseInfo: d.licenseInfo || '',
               seoTitle: d.seoTitle || d.title || '',
               seoDescription: d.seoDescription || d.description || d.shortDescription || '',
               seoTags: Array.isArray(d.seoTags) ? d.seoTags : [],
               featured: Boolean(d.featured),
+              featuredOrder: typeof d.featuredOrder === 'number' ? d.featuredOrder : (typeof d.pinOrder === 'number' ? d.pinOrder : 0),
+              pinOrder: typeof d.pinOrder === 'number' ? d.pinOrder : (typeof d.featuredOrder === 'number' ? d.featuredOrder : 0),
               status: (d.status as ContentStatus) || 'draft',
               lovesCount: typeof d.lovesCount === 'number' ? d.lovesCount : 0,
               viewsCount: typeof d.viewsCount === 'number' ? d.viewsCount : 0,
@@ -494,34 +501,123 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const now = new Date().toISOString();
 
     const existingItem = apks.find(a => a.id === id);
+
+    // Calculate featured ordering if marked as featured
+    let featuredOrder = apkData.featuredOrder;
+    if (apkData.featured) {
+      if (!featuredOrder || featuredOrder <= 0) {
+        const maxOrder = apks.reduce((max, a) => Math.max(max, a.featuredOrder || a.pinOrder || 0), 0);
+        featuredOrder = existingItem?.featuredOrder && existingItem.featuredOrder > 0 ? existingItem.featuredOrder : maxOrder + 1;
+      }
+    } else {
+      featuredOrder = 0;
+    }
+
     const itemToSave: ApkItem = {
       ...apkData,
       id,
-      lovesCount: existingItem ? existingItem.lovesCount : 0,
-      viewsCount: existingItem ? existingItem.viewsCount : 0,
+      title: (apkData.title || '').trim(),
+      name: (apkData.name || apkData.title || '').trim(),
+      slug: (apkData.slug || '').trim(),
+      appIcon: (apkData.appIcon || '').trim() || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&auto=format&fit=crop&q=80',
+      iconUrl: (apkData.iconUrl || apkData.appIcon || '').trim() || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200&auto=format&fit=crop&q=80',
+      coverImage: (apkData.coverImage || '').trim() || 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=1000&auto=format&fit=crop&q=80',
+      coverImageUrl: (apkData.coverImageUrl || apkData.coverImage || '').trim() || 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=1000&auto=format&fit=crop&q=80',
+      screenshots: Array.isArray(apkData.screenshots) ? apkData.screenshots : [],
+      shortDescription: (apkData.shortDescription || '').trim(),
+      description: (apkData.description || apkData.shortDescription || '').trim(),
+      fullDescription: (apkData.fullDescription || '').trim(),
+      category: apkData.category === 'MOD Games' ? 'MOD Games' : 'MOD Apps',
+      version: (apkData.version || 'v1.0.0').trim(),
+      fileSize: (apkData.fileSize || '').trim(),
+      androidRequirements: (apkData.androidRequirements || 'Android 9.0+').trim(),
+      downloadUrl: (apkData.downloadUrl || '').trim(),
+      officialSourceUrl: (apkData.officialSourceUrl || apkData.sourceUrl || '').trim(),
+      sourceUrl: (apkData.sourceUrl || apkData.officialSourceUrl || '').trim(),
+      developerName: (apkData.developerName || '').trim(),
+      packageName: (apkData.packageName || '').trim(),
+      changelog: (apkData.changelog || '').trim(),
+      licenseInfo: (apkData.licenseInfo || 'Authorized distribution with developer permission.').trim(),
+      seoTitle: (apkData.seoTitle || apkData.title || '').trim(),
+      seoDescription: (apkData.seoDescription || apkData.shortDescription || '').trim(),
+      seoTags: Array.isArray(apkData.seoTags) ? apkData.seoTags : [],
+      featured: Boolean(apkData.featured),
+      featuredOrder: featuredOrder,
+      pinOrder: featuredOrder,
+      status: apkData.status || 'draft',
+      lovesCount: existingItem ? existingItem.lovesCount : (typeof apkData.lovesCount === 'number' ? apkData.lovesCount : 0),
+      viewsCount: existingItem ? existingItem.viewsCount : (typeof apkData.viewsCount === 'number' ? apkData.viewsCount : 0),
       createdAt: existingItem ? existingItem.createdAt : now,
       updatedAt: now,
     };
 
     // Full dual-compatibility payload for Main Website
-    const payload = {
-      ...itemToSave,
+    const payload: Record<string, unknown> = {
+      id: itemToSave.id,
+      title: itemToSave.title,
+      name: itemToSave.name,
+      slug: itemToSave.slug,
       appIcon: itemToSave.appIcon,
-      iconUrl: itemToSave.appIcon,
+      iconUrl: itemToSave.iconUrl,
       coverImage: itemToSave.coverImage,
-      coverImageUrl: itemToSave.coverImage,
+      coverImageUrl: itemToSave.coverImageUrl,
+      screenshots: itemToSave.screenshots,
       shortDescription: itemToSave.shortDescription,
-      description: itemToSave.shortDescription,
+      description: itemToSave.description,
+      fullDescription: itemToSave.fullDescription,
+      category: itemToSave.category,
+      version: itemToSave.version,
+      fileSize: itemToSave.fileSize,
+      androidRequirements: itemToSave.androidRequirements,
+      downloadUrl: itemToSave.downloadUrl,
       officialSourceUrl: itemToSave.officialSourceUrl,
-      sourceUrl: itemToSave.officialSourceUrl,
+      sourceUrl: itemToSave.sourceUrl,
+      developerName: itemToSave.developerName,
+      packageName: itemToSave.packageName,
+      changelog: itemToSave.changelog,
       licenseInfo: itemToSave.licenseInfo,
+      seoTitle: itemToSave.seoTitle,
+      seoDescription: itemToSave.seoDescription,
+      seoTags: itemToSave.seoTags,
+      featured: itemToSave.featured,
+      featuredOrder: itemToSave.featuredOrder,
+      pinOrder: itemToSave.pinOrder,
+      status: itemToSave.status,
+      lovesCount: itemToSave.lovesCount,
+      viewsCount: itemToSave.viewsCount,
+      createdAt: itemToSave.createdAt,
+      updatedAt: itemToSave.updatedAt,
     };
+
+    // Sanitize any undefined values
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === undefined) {
+        delete payload[key];
+      }
+    });
 
     if (firestoreDb && !isDemoMode) {
       try {
         await setDoc(doc(firestoreDb, 'apkApps', id), payload);
-      } catch (err) {
-        handleFirestoreError(err, isNew ? OperationType.CREATE : OperationType.UPDATE, `apkApps/${id}`);
+
+        // Keep /siteSettings/featured in sync if pinning changed
+        const currentFeaturedIds = featuredConfig.featuredApkIds || [];
+        let updatedFeaturedIds: string[];
+        if (itemToSave.featured) {
+          updatedFeaturedIds = Array.from(new Set([...currentFeaturedIds, id]));
+        } else {
+          updatedFeaturedIds = currentFeaturedIds.filter(x => x !== id);
+        }
+        await setDoc(doc(firestoreDb, 'siteSettings', 'featured'), {
+          featuredApkIds: updatedFeaturedIds,
+          updatedAt: now,
+        }, { merge: true });
+        setFeaturedConfig(prev => ({ ...prev, featuredApkIds: updatedFeaturedIds }));
+      } catch (err: unknown) {
+        console.error('Firestore write error for apkApps:', err);
+        const errMsg = handleFirestoreError(err, isNew ? OperationType.CREATE : OperationType.UPDATE, `apkApps/${id}`);
+        showToast('error', 'Upload Failed', `Could not save APK to Firestore: ${errMsg || (err instanceof Error ? err.message : 'Unknown write error')}`);
+        throw err;
       }
     }
 
@@ -535,15 +631,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [itemToSave, ...prev];
     });
 
-    showToast('success', 'APK Saved', `"${itemToSave.title}" was saved to /apkApps/${id}.`);
+    showToast('success', 'APK Saved', `"${itemToSave.title}" has been successfully saved to /apkApps/${id}.`);
   };
 
   const deleteApk = async (id: string) => {
     if (firestoreDb && !isDemoMode) {
       try {
         await deleteDoc(doc(firestoreDb, 'apkApps', id));
-      } catch (err) {
+        // Remove from featured if was pinned
+        const updatedFeaturedIds = (featuredConfig.featuredApkIds || []).filter(x => x !== id);
+        await setDoc(doc(firestoreDb, 'siteSettings', 'featured'), {
+          featuredApkIds: updatedFeaturedIds,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+        setFeaturedConfig(prev => ({ ...prev, featuredApkIds: updatedFeaturedIds }));
+      } catch (err: unknown) {
         handleFirestoreError(err, OperationType.DELETE, `apkApps/${id}`);
+        showToast('error', 'Delete Failed', err instanceof Error ? err.message : 'Failed to delete APK from Firestore');
+        throw err;
       }
     }
     setApks(prev => prev.filter(a => a.id !== id));
@@ -557,12 +662,115 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (firestoreDb && !isDemoMode) {
       try {
         await setDoc(doc(firestoreDb, 'apkApps', id), { status, updatedAt: updated.updatedAt }, { merge: true });
-      } catch (err) {
+      } catch (err: unknown) {
         handleFirestoreError(err, OperationType.UPDATE, `apkApps/${id}`);
+        showToast('error', 'Status Update Failed', err instanceof Error ? err.message : 'Failed to update APK status');
+        throw err;
       }
     }
     setApks(prev => prev.map(a => (a.id === id ? updated : a)));
-    showToast('success', 'Status Updated', `Item set to ${status}. Main Website visibility synced.`);
+    showToast('success', 'Status Updated', `"${item.title}" marked as ${status}. Main Website visibility synced.`);
+  };
+
+  const togglePinApk = async (id: string, pinState?: boolean) => {
+    const item = apks.find(a => a.id === id);
+    if (!item) return;
+    const newFeatured = pinState !== undefined ? pinState : !item.featured;
+    const now = new Date().toISOString();
+
+    const maxOrder = apks.reduce((max, a) => Math.max(max, a.featuredOrder || a.pinOrder || 0), 0);
+    const newOrder = newFeatured ? (item.featuredOrder && item.featuredOrder > 0 ? item.featuredOrder : maxOrder + 1) : 0;
+
+    const updatedItem: ApkItem = {
+      ...item,
+      featured: newFeatured,
+      featuredOrder: newOrder,
+      pinOrder: newOrder,
+      updatedAt: now,
+    };
+
+    if (firestoreDb && !isDemoMode) {
+      try {
+        await setDoc(doc(firestoreDb, 'apkApps', id), {
+          featured: newFeatured,
+          featuredOrder: newOrder,
+          pinOrder: newOrder,
+          updatedAt: now,
+        }, { merge: true });
+
+        const currentFeaturedIds = featuredConfig.featuredApkIds || [];
+        let updatedFeaturedIds: string[];
+        if (newFeatured) {
+          updatedFeaturedIds = Array.from(new Set([...currentFeaturedIds, id]));
+        } else {
+          updatedFeaturedIds = currentFeaturedIds.filter(x => x !== id);
+        }
+        await setDoc(doc(firestoreDb, 'siteSettings', 'featured'), {
+          featuredApkIds: updatedFeaturedIds,
+          updatedAt: now,
+        }, { merge: true });
+        setFeaturedConfig(prev => ({ ...prev, featuredApkIds: updatedFeaturedIds }));
+      } catch (err: unknown) {
+        console.error('Failed to pin/unpin APK:', err);
+        handleFirestoreError(err, OperationType.UPDATE, `apkApps/${id}`);
+        showToast('error', 'Pin Failed', err instanceof Error ? err.message : 'Failed to update pin state in Firestore');
+        throw err;
+      }
+    }
+
+    setApks(prev => prev.map(a => a.id === id ? updatedItem : a));
+    showToast(
+      'success',
+      newFeatured ? 'Pinned to Top' : 'Unpinned',
+      newFeatured ? `"${item.title}" is now pinned to the top of Homepage.` : `"${item.title}" was unpinned.`
+    );
+  };
+
+  const reorderFeaturedApks = async (orderedIds: string[]) => {
+    const now = new Date().toISOString();
+    const db = firestoreDb;
+
+    if (db && !isDemoMode) {
+      try {
+        const batchPromises = orderedIds.map((id, index) => {
+          const orderNum = index + 1;
+          return setDoc(doc(db, 'apkApps', id), {
+            featured: true,
+            featuredOrder: orderNum,
+            pinOrder: orderNum,
+            updatedAt: now,
+          }, { merge: true });
+        });
+        await Promise.all(batchPromises);
+
+        await setDoc(doc(db, 'siteSettings', 'featured'), {
+          featuredApkIds: orderedIds,
+          updatedAt: now,
+        }, { merge: true });
+        setFeaturedConfig(prev => ({ ...prev, featuredApkIds: orderedIds }));
+      } catch (err: unknown) {
+        console.error('Failed to reorder featured APKs:', err);
+        handleFirestoreError(err, OperationType.UPDATE, 'apkApps/reorder');
+        showToast('error', 'Reorder Failed', err instanceof Error ? err.message : 'Failed to save order to Firestore');
+        throw err;
+      }
+    }
+
+    setApks(prev => prev.map(a => {
+      const orderIdx = orderedIds.indexOf(a.id);
+      if (orderIdx >= 0) {
+        return {
+          ...a,
+          featured: true,
+          featuredOrder: orderIdx + 1,
+          pinOrder: orderIdx + 1,
+          updatedAt: now,
+        };
+      }
+      return a;
+    }));
+
+    showToast('success', 'Order Saved', 'Homepage Featured APK display order synchronized with Firebase.');
   };
 
   // CRUD: Photo Prompts
@@ -1038,6 +1246,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       saveApk,
       deleteApk,
       setApkStatus,
+      togglePinApk,
+      reorderFeaturedApks,
       savePrompt,
       deletePrompt,
       setPromptStatus,

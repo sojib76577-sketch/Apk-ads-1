@@ -60,14 +60,16 @@ export const ApkDetailModal: React.FC<ApkDetailModalProps> = ({ item, isOpen, on
                 {item.status.toUpperCase()}
               </span>
               {item.featured && (
-                <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                  FEATURED
+                <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+                  PINNED #{item.featuredOrder || item.pinOrder || 1}
                 </span>
               )}
             </div>
 
             <h2 className="text-xl font-bold text-white mt-1.5 truncate">{item.title}</h2>
-            <p className="text-xs text-slate-400">By {item.developerName} · Version {item.version}</p>
+            <p className="text-xs text-slate-400">
+              {item.packageName ? `${item.packageName} · ` : ''}By {item.developerName || 'Developer'} · Version {item.version}
+            </p>
           </div>
         </div>
 
@@ -104,6 +106,12 @@ export const ApkDetailModal: React.FC<ApkDetailModalProps> = ({ item, isOpen, on
             <div className="mt-3 p-3.5 bg-slate-900/60 rounded-xl border border-slate-800/80 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
               {item.fullDescription}
             </div>
+            {item.changelog && (
+              <div className="mt-3 p-3.5 bg-indigo-950/20 rounded-xl border border-indigo-500/30 text-xs text-indigo-200 leading-relaxed">
+                <span className="font-bold text-indigo-300 block mb-1">Changelog &amp; What&apos;s New:</span>
+                <p className="whitespace-pre-wrap">{item.changelog}</p>
+              </div>
+            )}
           </div>
 
           {/* Download & Source Destination Verification */}
